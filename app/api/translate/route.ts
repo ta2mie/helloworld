@@ -22,7 +22,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: 'system',
-            content: 'You are a professional translator. Translate the given English word or phrase into Traditional Chinese (Taiwan/Hong Kong standard). Return ONLY the translation, with no extra text, markdown formatting, or punctuation.'
+            content: 'You are a professional translator. Translate the given English word or phrase into Traditional Chinese. Return ONLY the translation, with no extra text, markdown formatting, or punctuation.'
           },
           {
             role: 'user',
