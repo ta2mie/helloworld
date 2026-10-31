@@ -76,7 +76,7 @@ export default function Home() {
     <main style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' }}>
       {/* Static Header Section */}
       <section style={{ marginBottom: '30px', padding: '20px', background: '#f4f4f5', borderRadius: '8px', border: '1px solid #e4e4e7' }}>
-        <h1 style={{ margin: '0 0 10px 0', fontSize: '24px' }}>AI Translation & Database 101</h1>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '24px', color: '#18181b' }}>AI Translation & Database 101</h1>
         <p style={{ margin: 0, color: '#52525b' }}>
           Type an English word below. The server calls OpenRouter AI to translate it to Traditional Chinese, then saves the pair to your Supabase PostgreSQL database!
         </p>
@@ -90,7 +90,7 @@ export default function Home() {
           value={inputWord}
           onChange={(e) => setInputWord(e.target.value)}
           disabled={loading}
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #d4d4d8' }}
+          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #d4d4d8', color: '#09090b', background: '#ffffff' }}
         />
         <button
           type="submit"
