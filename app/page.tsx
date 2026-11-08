@@ -1,155 +1,87 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState } from 'react';
 
 export default function Home() {
-  const [items, setItems] = useState<any[]>([])
-  const [inputWord, setInputWord] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [jobDescription, setJobDescription] = useState('');
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
 
-  // 1. READ: Fetch items from Supabase on load
-  useEffect(() => {
-    fetchItems()
-  }, [])
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!jobDescription.trim()) return;
 
-  async function fetchItems() {
-    const { data, error } = await supabase
-      .from('items')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) console.error('Error fetching items:', error)
-    else setItems(data || [])
-  }
-
-  // 2. CREATE: Call AI API and store input + translation in DB
-  async function handleTranslateAndSave(e: React.FormEvent) {
-    e.preventDefault()
-    if (!inputWord.trim() || loading) return
-
-    setLoading(true)
+    setLoading(true);
+    setResult('');
+    setSaveStatus('');
 
     try {
-      // Call our Next.js backend AI route
-      const res = await fetch('/api/translate', {
+      const response = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: inputWord }),
-      })
+        body: JSON.stringify({ text: jobDescription }),
+      });
 
-      const data = await res.json()
+      const data = await response.json();
 
-      if (data.error) {
-        alert(`AI Translation Error: ${data.error}`)
-        setLoading(false)
-        return
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process job description');
       }
 
-      // Store both English word and AI translation in Supabase table
-      const { error: dbError } = await supabase
-        .from('items')
-        .insert([{ title: data.english, translation: data.translation }])
+      setResult(data.result);
+      setSaveStatus(data.saved ? 'Saved to database successfully!' : 'Processed (database save skipped)');
 
-      if (dbError) {
-        alert(`Database Error: ${dbError.message}`)
-      } else {
-        setInputWord('')
-        fetchItems()
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Failed to connect to translation server')
+    } catch (err: any) {
+      console.error(err);
+      setResult(`Error: ${err.message}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
-  // 3. DELETE: Remove item from database
-  async function deleteItem(id: number) {
-    const { error } = await supabase.from('items').delete().eq('id', id)
-    if (error) console.error('Error deleting item:', error)
-    else fetchItems()
-  }
+  };
 
   return (
-    <main style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' }}>
-      {/* Static Header Section */}
-      <section style={{ marginBottom: '30px', padding: '20px', background: '#f4f4f5', borderRadius: '8px', border: '1px solid #e4e4e7' }}>
-        <h1 style={{ margin: '0 0 10px 0', fontSize: '24px', color: '#18181b' }}>AI Translation & Database 101</h1>
-        <p style={{ margin: 0, color: '#52525b' }}>
-          Type an English word below. The server calls OpenRouter AI to translate it to Traditional Chinese, then saves the pair to your Supabase PostgreSQL database!
-        </p>
-      </section>
+    <main className="max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Job Description AI Analyzer</h1>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="jobDescription" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-200">
+            Paste Job Description here and skill-based description will be added:
+          </label>
+          <textarea
+            id="jobDescription"
+            rows={8}
+            className="w-full p-3 border border-slate-300 rounded-lg text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-slate-900 dark:text-white dark:border-slate-700"
+            placeholder="Paste the full job description here..."
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            required
+          />
+        </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleTranslateAndSave} style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
-        <input
-          type="text"
-          placeholder="Enter English word (e.g. Computer)..."
-          value={inputWord}
-          onChange={(e) => setInputWord(e.target.value)}
-          disabled={loading}
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #d4d4d8', color: '#09090b', background: '#ffffff' }}
-        />
         <button
           type="submit"
           disabled={loading}
-          style={{
-            padding: '10px 20px',
-            background: loading ? '#93c5fd' : '#2563eb',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-          }}
+          className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition cursor-pointer disabled:cursor-not-allowed"
         >
-          {loading ? 'Translating...' : 'Translate & Save'}
+          {loading ? 'Processing with AI...' : 'Analyze & Save'}
         </button>
       </form>
 
-      {/* Saved Database Items List */}
-      <h2>Translation History:</h2>
-      {items.length === 0 ? (
-        <p style={{ color: '#a1a1aa' }}>No translations stored in the database yet.</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {items.map((item) => (
-            <li
-              key={item.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 0',
-                borderBottom: '1px solid #e4e4e7',
-              }}
-            >
-              <div>
-                <strong style={{ fontSize: '18px' }}>{item.title}</strong>
-                <span style={{ margin: '0 10px', color: '#a1a1aa' }}>➔</span>
-                <span style={{ fontSize: '18px', color: '#16a34a', fontWeight: 'bold' }}>
-                  {item.translation || '(Pending translation)'}
-                </span>
-              </div>
-              <button
-                onClick={() => deleteItem(item.id)}
-                style={{
-                  background: '#ef4444',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+      {/* Output Display */}
+      {result && (
+        <div className="mt-6 p-4 border rounded-lg bg-slate-50 border-slate-200 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+          <h2 className="text-lg font-semibold mb-2">AI Response:</h2>
+          <pre className="whitespace-pre-wrap text-sm font-sans">{result}</pre>
+          
+          {saveStatus && (
+            <p className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              ✓ {saveStatus}
+            </p>
+          )}
+        </div>
       )}
     </main>
-  )
+  );
 }
